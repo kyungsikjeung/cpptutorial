@@ -164,7 +164,76 @@ void BST::findSmallest() {
     }
 }
 ```
+실 구현부
+```code
+// 트리에서 가장 작은 값을 찾아 출력하는 함수
+void BST::findSmallest() {
+    Node* smallest = findSmallestPrivate(root);
+    if (smallest != nullptr) {
+        cout << "Smallest value in the tree: " << smallest->data << endl;
+    } else {
+        cout << "Tree is empty" << endl;
+    }
+}
 
+// 왼쪽 서브트리를 타고 내려가면서 가장 작은 값을 가진 노드를 찾음
+BST::Node* BST::findSmallestPrivate(Node* Ptr) {
+    if (Ptr == nullptr) return nullptr;                // 트리가 비어있는 경우
+    else if (Ptr->left == nullptr) return Ptr;         // 더 이상 왼쪽 자식이 없으면 가장 작은 값
+    else return findSmallestPrivate(Ptr->left);        // 왼쪽 자식이 있다면 계속 탐색
+}
+
+// 삭제 요청을 처리하는 퍼블릭 함수 (사용자 API)
+void BST::removeNode(int data) {
+    root = removeNodePrivate(data, root);
+}
+
+// 실제 삭제 로직을 수행하는 프라이빗 함수
+BST::Node* BST::removeNodePrivate(int data, Node* Ptr) {
+    if (Ptr == nullptr) return nullptr; // 노드를 찾을 수 없는 경우
+
+    if (data < Ptr->data) {
+        // 삭제할 값이 현재 노드보다 작으면 왼쪽 서브트리에서 삭제
+        Ptr->left = removeNodePrivate(data, Ptr->left);
+    } else if (data > Ptr->data) {
+        // 삭제할 값이 현재 노드보다 크면 오른쪽 서브트리에서 삭제
+        Ptr->right = removeNodePrivate(data, Ptr->right);
+    } else {
+        // 삭제할 노드를 찾은 경우
+
+        // 1. 리프 노드인 경우 (자식 없음)
+        if (Ptr->left == nullptr && Ptr->right == nullptr) {
+            delete Ptr;
+            return nullptr;
+        }
+        // 2. 왼쪽 자식이 없는 경우 (오른쪽 자식만 있음)
+        else if (Ptr->left == nullptr) {
+            Node* temp = Ptr->right;
+            delete Ptr;
+            return temp; // 현재 노드를 삭제하고 오른쪽 자식으로 대체
+        }
+        // 3. 오른쪽 자식이 없는 경우 (왼쪽 자식만 있음)
+        else if (Ptr->right == nullptr) {
+            Node* temp = Ptr->left;
+            delete Ptr;
+            return temp; // 현재 노드를 삭제하고 왼쪽 자식으로 대체
+        }
+        // 4. 두 자식이 모두 있는 경우
+        else {
+            // 오른쪽 서브트리에서 가장 작은 값을 찾아 대체 (in-order successor)
+            Node* temp = findSmallestPrivate(Ptr->right);
+
+            // 현재 노드의 값을 후계자 값으로 바꿈
+            Ptr->data = temp->data;
+
+            // 후계자 노드를 삭제 (오른쪽 서브트리에서 중복 제거)
+            Ptr->right = removeNodePrivate(temp->data, Ptr->right);
+        }
+    }
+
+    return Ptr; // 변경된 서브트리의 루트 반환
+}
+```
 ---
 
 ## ✅ 컴파일 및 실행 방법
@@ -197,8 +266,4 @@ g++ main.cpp BST.cpp -o bst
 - 권장 도구: VS Code + Mermaid 미리보기 확장
 
 ---
-
-## 📎 라이선스
-
-MIT License
 
