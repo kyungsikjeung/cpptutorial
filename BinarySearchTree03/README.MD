@@ -1,6 +1,6 @@
 # 이진 탐색 트리 (Binary Search Tree, BST) - C++ 구현
 
-이 프로젝트는 C++로 작성된 **이진 탐색 트리(BST)**를 구현합니다. 노드 삽입, 중위 순회 출력, 특정 값 검색 등의 기능을 포함합니다.
+이 프로젝트는 C++로 작성된 **이진 탐색 트리(BST)**를 구현합니다. 노드 삽입, 중위 순회 출력, 특정 값 검색 및 노드 삭제 등의 기능을 포함합니다.
 
 ---
 
@@ -23,13 +23,17 @@ classDiagram
         - Node* root
         + BST()
         + addLeaf(int)
+        + removeNode(int)
         + printInOrder()
         + returnNode(int): Node*
         + returnRootKey(): int
         + printChild(int): void
+        + findSmallest(): void
         - addLeafPrivate(int, Node*)
-        - printInOrderPrivaet(Node*)
+        - removeNodePrivate(int, Node*): Node*
+        - printInOrderPrivate(Node*)
         - returnNodePrivate(int, Node*): Node*
+        - findSmallestPrivate(Node*): Node*
         - createLeaf(int): Node*
     }
 
@@ -44,84 +48,119 @@ classDiagram
 
 ---
 
-## 🌱 `addLeaf()` 함수 로직
+## 🌱 삽입 로직 (`addLeaf()`)
 
-```mermaid
-flowchart TD
-    A["addLeaf(data)"] --> B["addLeafPrivate(data, root)"]
-    B --> C{"root == nullptr"}
-    C -- "Yes" --> D["createLeaf(data)를 생성하여 root에 할당"]
-    C -- "No" --> E{"data < Ptr.data"}
-    E -- "Yes" --> F{"Ptr.left != nullptr"}
-    F -- "Yes" --> G["addLeafPrivate(data, Ptr.left)"]
-    F -- "No" --> H["Ptr.left = createLeaf(data)"]
-    E -- "No" --> I{"data > Ptr.data"}
-    I -- "Yes" --> J{"Ptr.right != nullptr"}
-    J -- "Yes" --> K["addLeafPrivate(data, Ptr.right)"]
-    J -- "No" --> L["Ptr.right = createLeaf(data)"]
-    I -- "No" --> M["출력: 값이 이미 존재함"]
+### ✅ 삽입 예시
+
+```
+        8
+       / \
+      3   10
+     /
+    1
+```
+
+### 📌 삽입 규칙
+| 상황 | 처리 방법 |
+|------|-----------|
+| 삽입 값 < 현재 노드 | 왼쪽으로 이동 |
+| 삽입 값 > 현재 노드 | 오른쪽으로 이동 |
+| 중복 값 | 삽입하지 않음 |
+
+---
+
+## 🧹 삭제 로직 (`removeNode()`)
+
+삭제하려는 노드의 자식 유무에 따라 다음 세 가지 경우로 나눕니다.
+
+### ✅ [Case 1] 리프 노드 (자식 없음)
+- 바로 삭제
+
+```
+    8
+   / \
+  3   10
+ /
+1   ← 삭제 대상
 ```
 
 ---
 
-## 🧾 중위 순회 로직 (`printInOrder()`)
+### ✅ [Case 2] 자식 1개
+- 부모 노드가 자식 노드를 대신 연결
 
-```mermaid
-flowchart TD
-    A["printInOrder()"] --> B["printInOrderPrivaet(root)"]
-    B --> C{"root == nullptr"}
-    C -- "Yes" --> D["출력: 트리가 비어 있음"]
-    C -- "No" --> E{"Ptr.left != nullptr"}
-    E -- "Yes" --> F["printInOrderPrivaet(Ptr.left)"]
-    E -- "No" --> G["왼쪽 자식 없음"]
-    F --> H["현재 노드 출력"]
-    H --> I{"Ptr.right != nullptr"}
-    I -- "Yes" --> J["printInOrderPrivaet(Ptr.right)"]
-    I -- "No" --> K["오른쪽 자식 없음"]
+```
+    8
+   / \
+  3   10
+ /
+1
+ \
+  2   ← 1 삭제 후, 2가 3의 왼쪽 자식이 됨
+```
+
+---
+
+### ✅ [Case 3] 자식 2개
+- 오른쪽 서브트리에서 **가장 작은 값**을 가져와 대체 후, 그 노드를 삭제
+
+### ▶ 삭제 전:
+```
+        8
+       / \
+      3   10
+         /  \
+        9    14
+            /
+          13
+         /
+       12
+```
+
+### ▶ 오른쪽 서브트리의 최소값 = 12
+- 10 자리를 12로 대체
+
+### ▶ 삭제 후:
+```
+        8
+       / \
+      3   12
+         /  \
+        9    14
+            /
+          13
 ```
 
 ---
 
 ## 🔍 검색 로직 (`returnNode()`)
 
-```mermaid
-flowchart TD
-    A["returnNode(data)"] --> B["returnNodePrivate(data, root)"]
-    B --> C{"root == nullptr"}
-    C -- "Yes" --> D["출력: 트리가 비어 있음, nullptr 반환"]
-    C -- "No" --> E{"data == Ptr.data"}
-    E -- "Yes" --> F["출력: 값 발견, 노드 반환"]
-    E -- "No" --> G{"data < Ptr.data"}
-    G -- "Yes" --> H{"Ptr.left != nullptr"}
-    H -- "Yes" --> I["returnNodePrivate(data, Ptr.left)"]
-    H -- "No" --> J["출력: 값 없음, nullptr 반환"]
-    G -- "No" --> K{"Ptr.right != nullptr"}
-    K -- "Yes" --> L["returnNodePrivate(data, Ptr.right)"]
-    K -- "No" --> M["출력: 값 없음, nullptr 반환"]
+```text
+- 현재 노드가 null이면: 트리 비어 있음
+- 찾는 값 == 현재 노드 값: 반환
+- 찾는 값 < 현재 노드 값: 왼쪽 자식으로 이동
+- 찾는 값 > 현재 노드 값: 오른쪽 자식으로 이동
 ```
 
 ---
 
 ## 🌳 자식 노드 정보 출력 (`printChild()`)
 
-다음 함수는 입력된 값에 해당하는 노드의 **왼쪽 및 오른쪽 자식 노드**를 출력합니다.
+입력된 값에 해당하는 노드의 왼쪽 및 오른쪽 자식 정보를 출력합니다.
+
+---
+
+## 🧾 최소값 찾기 (`findSmallest()`)
+
+트리의 가장 왼쪽 노드를 찾아 출력합니다.
 
 ```cpp
-void BST::printChild(int data){
-    Node* node = returnNode(data);
-    if(node != nullptr){
-        if(node->left != nullptr){
-            cout << "Left child: " << node->left->data << endl;
-        }else{
-            cout << "No left child" << endl;
-        }
-        if(node->right != nullptr){
-            cout << "Right child: " << node->right->data << endl;
-        }else{
-            cout << "No right child" << endl;
-        }
-    }else{
-        cout << "Node not found" << endl;
+void BST::findSmallest() {
+    Node* smallest = findSmallestPrivate(root);
+    if (smallest != nullptr) {
+        cout << "Smallest value in the tree: " << smallest->data << endl;
+    } else {
+        cout << "Tree is empty" << endl;
     }
 }
 ```
@@ -131,26 +170,23 @@ void BST::printChild(int data){
 ## ✅ 컴파일 및 실행 방법
 
 ### 컴파일
-
 ```bash
-g++ -std=c++11 main.cpp BST.cpp -o bst
+g++ main.cpp BST.cpp -o bst
 ```
 
 ### 실행
-
 ```bash
 ./bst
 ```
-
-
 
 ---
 
 ## 📝 참고 사항
 
-- 노드는 `new` 연산자로 동적 생성됩니다.
-- 삭제 기능은 포함되어 있지 않습니다.
-- 중복 값은 삽입되지 않습니다.
+- 함수 `printInOrderPrivate()`는 오타 수정이 필요합니다 (`Privaet` → `Private`)
+- `printInOrderPrivate()` 내부에서는 `Ptr == nullptr` 체크를 사용해야 재귀 함수로서 안전하게 작동합니다.
+- 중복된 값은 삽입되지 않도록 처리되어 있습니다.
+- 트리가 비어 있는 경우를 위한 예외 처리가 포함되어 있습니다.
 
 ---
 
@@ -162,4 +198,7 @@ g++ -std=c++11 main.cpp BST.cpp -o bst
 
 ---
 
+## 📎 라이선스
+
+MIT License
 
